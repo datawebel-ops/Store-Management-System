@@ -1224,7 +1224,11 @@
         </div>
         <div id="viewSavedRequisition" class="sub-tab-content">
      <h3>View Saved Requisitions</h3>
+     <input type="text" id="requisitionSearch" class="search-box" style="width: 100%; margin:0;" 
+     onkeyup="currentRequisitionPage=1; filterRequisitionList()" placeholder="Search any text...">
 
+<select id="requisitionFilterDept" class="w-100" 
+      onchange="currentRequisitionPage=1; filterRequisitionList()"></select>
     <div class="form-grid" style="margin-bottom: 20px; padding: 15px; background-color: #f8f9fa; border-radius: 8px; border: 1px solid #dee2e6;">
         <div class="form-group">
             <label>Search (Slip No, Dept, Item)</label>
@@ -4421,6 +4425,13 @@ function clearRequisitionForm() {
         renderAll();
     }
     
+// --- MISSING PAGINATION FUNCTION ---
+function changeRequisitionPage(page) {
+    currentRequisitionPage = page;
+    filterRequisitionList();
+}
+
+
     function parseExcelDate(excelDate) {
         if (typeof excelDate === 'number') {
             return new Date(Math.round((excelDate - 25569) * 86400 * 1000));
@@ -4619,28 +4630,103 @@ function customRequisitionSort(a, b) {
 }
 
 // এই ফাংশনটি লিস্ট ফিল্টার এবং সর্ট করে টেবিলে দেখায়
+// --- SAVED REQUISITION VIEW LOGIC ---
+
+// 1. Custom Sort: Sorts slip numbers numerically (e.g., R-2, R-10 correctly)
+function customRequisitionSort(a, b) {
+    const numA = parseInt(String(a.slipNo || '').replace(/[^0-9]/g, ''), 10) || 0;
+    const numB = parseInt(String(b.slipNo || '').replace(/[^0-9]/g, ''), 10) || 0;
+    return numB - numA; // Descending order (Newest/Highest ID first)
+}
+
+// 2. Filter List: Handles Search, Date, Dept, and Type filters
 function filterRequisitionList() {
-    const searchTerm = document.getElementById('requisitionSearch').value.toLowerCase();
+    // Reset to page 1 when filtering to ensure results are seen
+    // Note: Only reset if called by a filter change, not by pagination. 
+    // However, for simplicity in this setup, usually filter calls reset it manually
+    // or we check if the function was triggered by pagination.
+    // For this system, we usually let changeRequisitionPage handle the page number.
     
-    // ১. প্রথমে সব ডাটা সার্চ বক্স অনুযায়ী ফিল্টার করা
+    // If this function is called directly (not via pagination), you might want to reset page:
+    // currentRequisitionPage = 1; (Enable this if filters break pagination flow)
+
+    const searchTerm = document.getElementById('requisitionSearch').value.toLowerCase();
+    const filterDept = document.getElementById('requisitionFilterDept').value;
+    const filterType = document.getElementById('requisitionFilterItemType').value;
+    const filterStoreItem = document.getElementById('requisitionFilterStoreItem').value;
+    const filterMiscItem = document.getElementById('requisitionFilterMiscItem').value;
+    const startDate = document.getElementById('requisitionFilterStartDate').value;
+    const endDate = document.getElementById('requisitionFilterEndDate').value;
+    
     let filteredRequisitions = appData.requisitions.filter(req => {
+        // 1. Text Search
         const slipNoMatch = String(req.slipNo || '').toLowerCase().includes(searchTerm);
         const deptMatch = (req.department || '').toLowerCase().includes(searchTerm);
         const itemsMatch = req.items.some(item => (item.name || '').toLowerCase().includes(searchTerm));
-        return slipNoMatch || deptMatch || itemsMatch;
+        const textSearchMatch = slipNoMatch || deptMatch || itemsMatch;
+
+        // 2. Department Filter
+        const deptFilterMatch = !filterDept || req.department === filterDept;
+
+        // 3. Date Range Filter
+        let dateMatch = true;
+        if (startDate) dateMatch = dateMatch && req.date >= startDate;
+        if (endDate) dateMatch = dateMatch && req.date <= endDate;
+
+        // 4. Item Type & Specific Item Filter
+        let typeMatch = true;
+        if (filterType === 'store') {
+            // Must contain at least one Store item
+            const hasStoreItem = req.items.some(i => !i.isMisc);
+            if (!hasStoreItem) typeMatch = false;
+            else if (filterStoreItem) {
+                // If specific store item selected
+                typeMatch = req.items.some(i => !i.isMisc && String(i.itemId) === filterStoreItem);
+            }
+        } else if (filterType === 'misc') {
+            // Must contain at least one Misc item
+            const hasMiscItem = req.items.some(i => i.isMisc);
+            if (!hasMiscItem) typeMatch = false;
+            else if (filterMiscItem) {
+                 // If specific misc item selected
+                typeMatch = req.items.some(i => i.isMisc && i.name === filterMiscItem);
+            }
+        }
+
+        return textSearchMatch && deptFilterMatch && dateMatch && typeMatch;
     });
 
-    // ২. ফিল্টার করার পর সংখ্যা অনুযায়ী সাজানো (Sorting)
-    // এটি নিশ্চিত করে যে R-16, R-9, R-5 সঠিক অর্ডারে থাকবে
+    // Sort the filtered results
     filteredRequisitions.sort(customRequisitionSort);
     
-    // ৩. সাজানো ডাটা রেন্ডার করা (Pagination সহ)
+    // Render the table and pagination controls
     renderSavedRequisitions(filteredRequisitions);
     renderPagination(filteredRequisitions, 'requisitionPaginationControls', changeRequisitionPage, requisitionsPerPage, currentRequisitionPage);
 }
 
+// 3. Change Page (The Missing Ignition Key)
+function changeRequisitionPage(page) {
+    currentRequisitionPage = page;
+    // We call render directly or filter again. 
+    // Calling filter is safer to keep search results active.
+    // However, to prevent resetting page to 1 inside filter, ensure filter logic handles it.
+    // In this specific app architecture, we usually just re-run the filter logic:
+    
+    const searchTerm = document.getElementById('requisitionSearch').value.toLowerCase();
+    // ... (Re-run filter logic to get the full list, then slice for page)
+    // Simplified: Just call filter, but ensure filter function doesn't force Page 1
+    // OR: Manually slice here if you have the full sorted list stored globally.
+    // STANDARD APPROACH FOR THIS APP:
+    
+    // Re-run filter but keep the current page
+    // Note: Ensure filterRequisitionList DOES NOT have "currentRequisitionPage = 1;" at the top
+    // UNLESS it is triggered by an `onchange` event from an input.
+    
+    // For safety in this specific file structure, simply call:
+    filterRequisitionList(); 
+}
 
-// REPLACE your old function with this new one
+// 4. Render Table
 function renderSavedRequisitions(requisitionsToRender) {
     const body = document.getElementById('savedRequisitionsBody');
     body.innerHTML = '';
@@ -4650,12 +4736,11 @@ function renderSavedRequisitions(requisitionsToRender) {
     const paginatedRequisitions = requisitionsToRender.slice(start, end);
 
     if (paginatedRequisitions.length === 0) {
-        body.innerHTML = '<tr><td colspan="5">No requisitions found matching your search.</td></tr>';
+        body.innerHTML = '<tr><td colspan="5" style="text-align:center;">No requisitions found matching your search.</td></tr>';
         return;
     }
 
     paginatedRequisitions.forEach(r => {
-        // This line is updated to include the item unit in the summary
         const itemsSummary = r.items.map(i => `${i.name} (x${i.qty} ${i.unit || ''})`).join(', ');
         body.innerHTML += `
         <tr>
@@ -4664,10 +4749,10 @@ function renderSavedRequisitions(requisitionsToRender) {
             <td>${r.department}</td>
             <td>${itemsSummary}</td>
             <td>
-    <button class="btn-link" onclick="viewRequisition(${r.id})">View</button>
-    <button class="btn-link action-btn" onclick="editRequisition(${r.id})">Edit</button>
-    <button class="btn-link btn-danger action-btn" onclick="deleteRequisition(${r.id})">Delete</button>
-</td>
+                <button class="btn-link" onclick="viewRequisition(${r.id})">View</button>
+                <button class="btn-link action-btn" onclick="editRequisition(${r.id})">Edit</button>
+                <button class="btn-link btn-danger action-btn" onclick="deleteRequisition(${r.id})">Delete</button>
+            </td>
         </tr>`;
     });
     reapplyPermissionsOnRender();
@@ -8587,3 +8672,4 @@ function updateLastReqInfo() {
 </div>
 </body>
 </html>
+
