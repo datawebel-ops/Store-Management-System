@@ -632,12 +632,16 @@
 <div id="app-container" class="hidden">
 <div class="container">
     <header class="header">
-    <h1>Store Management System</h1>
-    <div style="display: flex; align-items: center;">
-        <button id="logout-button" class="btn btn-danger" onclick="handleLogout()" style="margin-right: 15px;">Logout</button>
-        <div id="syncStatus" class="loading">Loading...</div>
-    </div>
-</header>
+        <div style="display: flex; align-items: center; gap: 15px;">
+            <h1>Store Management System</h1>
+            <select id="globalFY" onchange="updateLastReqInfo()" style="padding: 6px 12px; font-size: 16px; font-weight: bold; border-radius: 6px; color: var(--deep-blue); background-color: #e3f2fd; border: 2px solid #90caf9; cursor: pointer;">
+            </select>
+        </div>
+        <div style="display: flex; align-items: center;">
+            <button id="logout-button" class="btn btn-danger" onclick="handleLogout()" style="margin-right: 15px;">Logout</button>
+            <div id="syncStatus" class="loading">Loading...</div>
+        </div>
+    </header>
 
 <nav class="tabs">
     <button class="tab-button active" onclick="openTab(event, 'itemManage')"><b>ITEM MANAGE</b></button>
@@ -658,6 +662,7 @@
             <button class="sub-tab-button" onclick="openSubTab(event, 'miscItemList', 'itemManage'); filterMiscItemsLog();">MISCELLANEOUS ITEMS</button>
             <button class="sub-tab-button" onclick="openSubTab(event, 'manageMiscItems', 'itemManage'); renderMiscItemListForEditing();">MANAGE MISC. ITEMS</button>
             <button class="sub-tab-button" onclick="openSubTab(event, 'miscDefaults', 'itemManage'); renderMiscDefaultsForm();">MISC DEFAULTS</button>
+            <button class="sub-tab-button" onclick="openSubTab(event, 'stockAudit', 'itemManage')">STOCK AUDIT (EXCEL)</button>
         </div>
 <div id="manageMiscItems" class="sub-tab-content">
     <h3>Manage Miscellaneous Items</h3>
@@ -752,16 +757,20 @@
             </table>
             <div id="paginationControls" class="pagination-controls"></div>
              <hr>
-            <h3>Update Items from Excel</h3>
-            <div class="form-group">
-                <label>Select Excel File (.xlsx) to Update</label>
-                <input type="file" id="excelUpdateFileInput" accept=".xlsx, .xls">
-                <p style="font-size: 12px; margin-top: 5px;">
-                    Required: 'Item Code'. Can update: 'Item Name', 'Stock Page No.', 'Purch. Page No.', 'Unit Measure', 'Reorder Level'.
-                </p>
-            </div>
-             <button class="btn btn-success mt-20" onclick="updateItemsFromExcel()">Update Items</button>
-        </div>
+             <hr>
+             <h3>Update Items from Excel</h3>
+             
+             <button class="btn btn-secondary mt-20" onclick="exportItemsForUpdate()" style="margin-bottom: 15px;">⬇️ Download Current Item List (Excel)</button>
+             
+             <div class="form-group">
+                 <label>Select Excel File (.xlsx) to Update</label>
+                 <input type="file" id="excelUpdateFileInput" accept=".xlsx, .xls">
+                 <p style="font-size: 12px; margin-top: 5px;">
+                     Required: 'Item Code'. Can update: 'Item Name', 'Stock Page No.', 'Purch. Page No.', 'Unit Measure', 'Reorder Level'.
+                 </p>
+             </div>
+              <button class="btn btn-success mt-20" onclick="updateItemsFromExcel()">Update Items</button>
+         </div>
         
         <div id="lowStockList" class="sub-tab-content">
             <h3>Low Stock Items</h3>
@@ -829,6 +838,31 @@
             <div class="mt-20">
                  <button class="btn btn-primary" onclick="saveMiscDefaults()">SAVE DEFAULTS</button>
             </div>
+        </div>
+        <div id="stockAudit" class="sub-tab-content">
+            <h3>Year-End Stock Audit (Google Sheet)</h3>
+            <div style="background: #e3f2fd; padding: 15px; border-radius: 6px; border: 1px solid #90caf9; margin-bottom: 20px;">
+                <p style="margin:0; color: #1565c0;">
+                    <strong>ধাপ ১:</strong> নিচের 'Prepare Audit Sheet' বাটনে ক্লিক করুন। এটি আপনার গুগল শিটে অটোমেটিক <b>Audit Report</b> নামের একটি নতুন ট্যাব তৈরি করে দেবে।<br>
+                    <strong>ধাপ ২:</strong> গুগল শিটটি ওপেন করে আপনার গোনা স্টকের সংখ্যাগুলো সেখানে বসান।<br>
+                    <strong>ধাপ ৩:</strong> এরপর এই সফটওয়্যারটি রিলোড (F5) করে এসে নিচের 'Sync Audit' বাটনে ক্লিক করুন। নতুন বছরে আপনার স্টক এখান থেকেই শুরু হবে!
+                </p>         
+            <button class="btn btn-secondary" onclick="prepareAuditSheet()" style="margin-right: 10px; margin-bottom: 10px;">📄 1. Prepare Audit Sheet (Google Sheet)</button>
+            <button class="btn btn-success" onclick="syncAuditFromSheet()" style="margin-bottom: 10px;">🔄 2. Sync & Update Stock from Google Sheet</button>
+            
+            <div id="auditResult" class="mt-20" style="padding: 15px; background: #fff; border-radius: 8px; display: none;"></div>
+        </div>
+            
+            <div class="form-group" style="max-width: 500px;">
+                <label>Select Audit Excel File (.xlsx)</label>
+                <input type="file" id="auditExcelInput" accept=".xlsx, .xls" style="padding: 10px; border: 1px solid #ccc; background: white;">
+                <p style="font-size: 13px; margin-top: 8px; color: var(--text-red);">
+                    <strong>এক্সেল ফাইলে অবশ্যই এই দুটি কলাম থাকতে হবে:</strong> 'Item Name' এবং 'Counted Stock'
+                </p>
+            </div>
+             <button class="btn btn-success mt-20" onclick="processAuditFromExcel()">📊 Process Audit & Adjust Stock</button>
+             
+             <div id="auditResult" class="mt-20" style="padding: 15px; background: #fff; border-radius: 8px; display: none;"></div>
         </div>
     </main>
     
@@ -2035,6 +2069,21 @@ const loginError = document.getElementById('login-error');
         nextId: {}, miscItemDefaults: {}
     };
     
+// ==========================================
+// --- GLOBAL HELPER FOR ITEM CODE SORTING ---
+// ==========================================
+function sortStoreItemsByCode(a, b) {
+    const codeA = (a.code || "").toString().trim().toUpperCase();
+    const codeB = (b.code || "").toString().trim().toUpperCase();
+    
+    // কোড অনুযায়ী A-Z সাজাবে
+    if (codeA < codeB) return -1;
+    if (codeA > codeB) return 1;
+    
+    // যদি কোড একই হয়, তবে নাম অনুযায়ী সাজাবে
+    return (a.name || "").localeCompare(b.name || "");
+}
+
     // ADD TO EXISTING VARIABLES
 let orderCart = [];
 let currentOrderPage = 1;
@@ -2239,33 +2288,40 @@ function populateItemDatalist() {
     }
 }
 
-    function populateAllDropdowns() {
-        populateItemDatalist();
-        
-  {
-    const miscListData = document.getElementById('miscListData');
-    if (miscListData) {
-        const sortedItems = [...appData.miscItems].sort((a, b) => a.name.localeCompare(b.name));
-        // নিচের লাইনে backticks (`) যোগ করা হয়েছে
+function populateItemDatalist() {
+    const itemListData = document.getElementById('itemListData');
+    if (itemListData) {
+        const sortedItems = [...appData.items].sort(sortStoreItemsByCode);
         const optionsHtml = sortedItems.map(item => `<option value="${item.name}"></option>`).join('');
-        miscListData.innerHTML = optionsHtml;
+        itemListData.innerHTML = optionsHtml;
     }
 }
-       
-        populateDropdown(document.getElementById('unitMeasure'), appData.measures);
-        populateDropdown(document.getElementById('miscDefaultUnit'), appData.measures);
-        populateDropdown(document.getElementById('challanMiscUnit'), appData.measures);
-        populateDropdown(document.getElementById('directInvoiceMiscUnit'), appData.measures);
-        populateDropdown(document.getElementById('challanVendorName'), appData.vendors, true);
-        populateDropdown(document.getElementById('directInvoiceVendorName'), appData.vendors, true);
-        populateDropdown(document.getElementById('reqDepartment'), appData.departments, true);
-        populateDropdown(document.getElementById('directInvoiceGst'), appData.gsts);
+
+function populateAllDropdowns() {
+    populateItemDatalist(); 
+    
+    populateDropdown(document.getElementById('unitMeasure'), appData.measures);
+    populateDropdown(document.getElementById('miscDefaultUnit'), appData.measures);
+    populateDropdown(document.getElementById('challanMiscUnit'), appData.measures);
+    populateDropdown(document.getElementById('directInvoiceMiscUnit'), appData.measures);
+    
+    populateDropdown(document.getElementById('challanVendorName'), appData.vendors, true);
+    populateDropdown(document.getElementById('directInvoiceVendorName'), appData.vendors, true);
+    populateDropdown(document.getElementById('reqDepartment'), appData.departments, true);
+    populateDropdown(document.getElementById('directInvoiceGst'), appData.gsts);
+    
+    // 🟢 Item Ledger Report-এর ড্রপডাউনটিকে Item Code অনুযায়ী সাজানো হচ্ছে
+    const ledgerItemSelect = document.getElementById('ledgerItemSelect');
+    if (ledgerItemSelect) {
+        const sortedItems = [...appData.items].sort(sortStoreItemsByCode);
         
-        const ledgerItemSelect = document.getElementById('ledgerItemSelect');
-        if (ledgerItemSelect) {
-            populateDropdown(ledgerItemSelect, [...appData.items].sort((a,b) => a.name.localeCompare(b.name)), true, 'name', 'id');
-        }
+        ledgerItemSelect.innerHTML = '<option value="">-- Select Store Item --</option>';
+        sortedItems.forEach(item => {
+            const displayText = item.code ? `${item.code} - ${item.name}` : item.name;
+            ledgerItemSelect.innerHTML += `<option value="${item.id}">${displayText}</option>`;
+        });
     }
+} // 🔴 এই শেষের ব্র্যাকেটটাই আগেরবার মুছে গিয়েছিল!
     
     function toggleMiscItem(prefix, isModal = false, modalId = '') {
         const checkboxId = isModal ? `edit${modalId}MiscCheckbox` : `${prefix}MiscCheckbox`;
@@ -2295,13 +2351,13 @@ function populateItemDatalist() {
 function updateMiscItemStock(itemName, qtyChange, unit = appData.miscItemDefaults.unit) {
     let miscItem = appData.miscItems.find(mi => mi.name.toLowerCase() === itemName.toLowerCase());
     if (miscItem) {
-        miscItem.stock += qtyChange;
+        // FIX: Force math addition instead of string concatenation
+        miscItem.stock = Number(miscItem.stock) + Number(qtyChange);
     } else if (qtyChange > 0) {
-        // Now creates the new misc item with the correct unit you selected
         appData.miscItems.push({
             id: getNextId('misc'),
             name: itemName,
-            stock: qtyChange,
+            stock: Number(qtyChange), // FIX: Force Number
             unit: unit 
         });
     }
@@ -2309,37 +2365,35 @@ function updateMiscItemStock(itemName, qtyChange, unit = appData.miscItemDefault
 
 
     
-    function toggleRequisitionItemType(prefix) {
-        const itemType = document.querySelector(`input[name="${prefix}ItemType"]:checked`).value;
-        const itemSelect = document.getElementById(`${prefix}ItemName`);
-        
-        itemSelect.disabled = false;
-        itemSelect.innerHTML = '<option value="">-- Select an Item --</option>'; 
-        
-        let sourceData = [];
-        if (itemType === 'store') {
-            sourceData = appData.items.filter(i => i.stock > 0);
-        } else {
-            sourceData = appData.miscItems.filter(i => i.stock > 0);
-        }
-
-        sourceData.sort((a, b) => a.name.localeCompare(b.name));
-
-        sourceData.forEach(item => {
-            const option = document.createElement('option');
-            option.value = item.name;
-            option.textContent = item.name;
-            itemSelect.appendChild(option);
-        });
-
-        document.getElementById(`${prefix}ItemDetails`).style.display = 'none';
-        
-        const slipNoInput = document.getElementById('reqSlipNo');
-        if (slipNoInput) {
-             slipNoInput.value = '';
-             formatReqSlipNo(slipNoInput);
-        }
+function toggleRequisitionItemType(prefix) {
+    const itemType = document.querySelector(`input[name="${prefix}ItemType"]:checked`).value;
+    const itemSelect = document.getElementById(`${prefix}ItemName`);
+    
+    itemSelect.disabled = false;
+    itemSelect.innerHTML = '<option value="">-- Select an Item --</option>'; 
+    
+    let sourceData = [];
+    if (itemType === 'store') {
+        sourceData = appData.items.filter(i => i.stock > 0).sort(sortStoreItemsByCode);
+    } else {
+        sourceData = appData.miscItems.filter(i => i.stock > 0).sort((a, b) => a.name.localeCompare(b.name));
     }
+
+    sourceData.forEach(item => {
+        const option = document.createElement('option');
+        option.value = item.name;
+        option.textContent = item.name;
+        itemSelect.appendChild(option);
+    });
+
+    document.getElementById(`${prefix}ItemDetails`).style.display = 'none';
+    
+    const slipNoInput = document.getElementById('reqSlipNo');
+    if (slipNoInput) {
+         slipNoInput.value = '';
+         formatReqSlipNo(slipNoInput);
+    }
+}
 
 
     // --- INITIALIZATION ---
@@ -2347,10 +2401,9 @@ document.addEventListener('DOMContentLoaded', () => { loginContainer.classList.r
 });
 
 function renderAll() {
+    populateFinancialYearDropdown(); // <--- এই লাইনটি একদম প্রথমে যোগ করুন
     populateYearDropdown();
     filterItemList();
-    
-    
     populateAllDropdowns(); 
     populateMiscDatalist();
     
@@ -2367,9 +2420,12 @@ function renderAll() {
     filterRequisitionList();
     renderLowStockItems();
     renderMiscDefaultsForm();
-    updateLastReqInfo();
+    
+    // সর্বশেষ আপডেট হওয়া ইনফো দেখানোর জন্য
+    if(typeof updateLastReqInfo === 'function') {
+        updateLastReqInfo();
+    }
 }
-
 function populateAllDropdowns() {
     populateItemDatalist(); // এটি আইটেম লিস্ট লোড করে
     
@@ -2386,10 +2442,18 @@ function populateAllDropdowns() {
     
     const ledgerItemSelect = document.getElementById('ledgerItemSelect');
     if (ledgerItemSelect) {
-        populateDropdown(ledgerItemSelect, [...appData.items].sort((a,b) => a.name.localeCompare(b.name)), true, 'name', 'id');
+        // আইটেমগুলোকে Item Code অনুযায়ী সাজানো হচ্ছে
+        const sortedItems = [...appData.items].sort(sortStoreItemsByCode);
+        
+        // ড্রপডাউন লিস্ট ক্লিয়ার করে নতুন করে তৈরি করা
+        ledgerItemSelect.innerHTML = '<option value="">-- Select Store Item --</option>';
+        sortedItems.forEach(item => {
+            // সেফটি চেক: যদি কোড থাকে তবেই "Code - Name" দেখাবে
+            const displayText = item.code ? `${item.code} - ${item.name}` : item.name;
+            ledgerItemSelect.innerHTML += `<option value="${item.id}">${displayText}</option>`;
+        });
     }
 }
-
 // এই ফাংশনটি মিসিং থাকার কারণে লগইন আটকাচ্ছিল
 function populateMiscDatalist() {
     const miscListData = document.getElementById('miscListData');
@@ -2522,43 +2586,59 @@ function populateMiscDatalist() {
     }
 
     function filterItemList() {
-        const searchTerm = document.getElementById('itemSearch').value.toLowerCase();
-        let filteredItems = [...appData.items].sort((a,b) => a.name.localeCompare(b.name));
+        const searchTerm = document.getElementById('itemSearch').value.toLowerCase().trim();
+        
+        // 1. Start with all items
+        let filteredItems = [...appData.items];
+        
+        // 2. Filter if there is a search term
         if (searchTerm) {
-            filteredItems = appData.items.filter(item => item.name.toLowerCase().includes(searchTerm) || item.code.toLowerCase().includes(searchTerm));
+            filteredItems = filteredItems.filter(item => 
+                (item.name && item.name.toLowerCase().includes(searchTerm)) || 
+                (item.code && item.code.toLowerCase().includes(searchTerm))
+            );
         }
+
+        // 3. SORT BY ITEM CODE (Alphanumeric order: A0001, B0001, B0002)
+        filteredItems.sort((a, b) => {
+            const codeA = (a.code || "").toString().toUpperCase();
+            const codeB = (b.code || "").toString().toUpperCase();
+            
+            // This ensures strict alphabetical/numerical sorting
+            return codeA.localeCompare(codeB, undefined, { numeric: true, sensitivity: 'base' });
+        });
         
         renderItemList(filteredItems);
         renderPagination(filteredItems, 'paginationControls', changeItemPage, itemsPerPage, currentItemPage);
     }
     
     function renderLowStockItems() {
-        const listBody = document.getElementById('lowStockListBody');
-        if (!listBody) return;
+    const listBody = document.getElementById('lowStockListBody');
+    if (!listBody) return;
+    
+    const lowStockItems = appData.items
+        .filter(item => item.stock <= (item.reorderLevel || 0) && item.reorderLevel > 0)
+        .sort(sortStoreItemsByCode);
         
-        const lowStockItems = appData.items
-            .filter(item => item.stock <= (item.reorderLevel || 0) && item.reorderLevel > 0)
-            .sort((a, b) => a.name.localeCompare(b.name));
-            
-        listBody.innerHTML = '';
-        if (lowStockItems.length === 0) {
-            listBody.innerHTML = '<tr><td colspan="5">No items are currently low on stock.</td></tr>';
-            return;
-        }
-
-        lowStockItems.forEach(item => {
-            const row = `
-                <tr class="low-stock-warning">
-                    <td>${item.name}</td>
-                    <td>${item.code}</td>
-                    <td><strong>${item.stock}</strong></td>
-                    <td>${item.reorderLevel || 0}</td>
-                    <td>${item.unit}</td>
-                </tr>
-            `;
-            listBody.innerHTML += row;
-        });
+    listBody.innerHTML = '';
+    if (lowStockItems.length === 0) {
+        listBody.innerHTML = '<tr><td colspan="5">No items are currently low on stock.</td></tr>';
+        return;
     }
+
+    lowStockItems.forEach(item => {
+        const row = `
+            <tr class="low-stock-warning">
+                <td>${item.name}</td>
+                <td>${item.code}</td>
+                <td><strong>${item.stock}</strong></td>
+                <td>${item.reorderLevel || 0}</td>
+                <td>${item.unit}</td>
+            </tr>
+        `;
+        listBody.innerHTML += row;
+    });
+}
 
     function editItem(id) {
         const item = appData.items.find(i => i.id === id);
@@ -2708,6 +2788,33 @@ function populateMiscDatalist() {
         reader.readAsArrayBuffer(file);
     }
     
+// --- EXPORT ITEM LIST FOR BULK UPDATE ---
+function exportItemsForUpdate() {
+    if (appData.items.length === 0) {
+        alert("No items found to export.");
+        return;
+    }
+
+    // এক্সেলের জন্য ডেটা সাজানো হচ্ছে
+    const data = appData.items.map(item => ({
+        'Item Code': item.code,
+        'Item Name': item.name,
+        'Stock Page No.': item.stockPage,
+        'Purch. Page No.': item.purchPage,
+        'Unit Measure': item.unit,
+        'Reorder Level': item.reorderLevel || 0
+    }));
+
+    // এক্সেল ফাইল তৈরি করা
+    const worksheet = XLSX.utils.json_to_sheet(data);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Items To Update");
+
+    // ফাইলটি ডাউনলোড করা
+    const fyString = document.getElementById('globalFY') ? document.getElementById('globalFY').value : 'New_FY';
+    XLSX.writeFile(workbook, `Item_Master_Page_Update_${fyString}.xlsx`);
+}
+
     // --- MISCELLANEOUS ITEMS ---
     function renderMiscDefaultsForm() {
         document.getElementById('miscDefaultCode').value = appData.miscItemDefaults.code;
@@ -3134,11 +3241,14 @@ function saveChallan() {
 
     newChallan.items.forEach(challanItem => {
         if (challanItem.isMisc) {
-            // This line is updated to pass the correct unit
             updateMiscItemStock(challanItem.name, challanItem.qty, challanItem.unit);
         } else {
-            const itemInDb = appData.items.find(i => i.id === challanItem.itemId);
-            if (itemInDb) itemInDb.stock += challanItem.qty;
+            // FIX: Match IDs by casting both to Strings
+            const itemInDb = appData.items.find(i => String(i.id) === String(challanItem.itemId));
+            if (itemInDb) {
+                // FIX: Force math addition
+                itemInDb.stock = Number(itemInDb.stock) + Number(challanItem.qty);
+            }
         }
     });
     
@@ -3555,11 +3665,14 @@ function saveDirectInvoice() {
 
     newInvoice.items.forEach(invoiceItem => {
         if (invoiceItem.isMisc) {
-            // This line is updated to pass the correct unit
             updateMiscItemStock(invoiceItem.name, invoiceItem.qty, invoiceItem.unit);
         } else {
-            const itemInDb = appData.items.find(i => i.id === invoiceItem.itemId);
-            if (itemInDb) itemInDb.stock += invoiceItem.qty;
+            // FIX: Match IDs by casting both to Strings
+            const itemInDb = appData.items.find(i => String(i.id) === String(invoiceItem.itemId));
+            if (itemInDb) {
+                // FIX: Force math addition
+                itemInDb.stock = Number(itemInDb.stock) + Number(invoiceItem.qty);
+            }
         }
     });
 
@@ -3587,6 +3700,12 @@ function saveDirectInvoice() {
     }
     
  // --- VIEW/EDIT SAVED INVOICES ---
+ function changeInvoicePage(page) {
+    currentInvoicePage = page;
+    filterInvoiceList(true); 
+}
+
+
  function renderSavedInvoices(invoicesToRender) {
     const listBody = document.getElementById('savedInvoicesBody');
     const searchTerm = document.getElementById('invoiceSearch').value.toLowerCase().trim(); 
@@ -3643,15 +3762,11 @@ function saveDirectInvoice() {
     reapplyPermissionsOnRender();
 }
 
-function changeInvoicePage(page) {
-    currentInvoicePage = page;
-    filterInvoiceList();
-}
-
-function filterInvoiceList() {
-    // 1. ALWAYS reset to Page 1 when a filter changes. 
-    // This ensures you search the whole data and see the top results.
-    currentInvoicePage = 1; 
+function filterInvoiceList(fromPagination = false) {
+    // 1. Only reset to Page 1 if a filter was changed (NOT a page click)
+    if (!fromPagination) {
+        currentInvoicePage = 1; 
+    }
 
     // 2. Get values from all filter controls
     const searchTerm = document.getElementById('invoiceSearch').value.toLowerCase().trim();
@@ -3716,36 +3831,7 @@ function filterInvoiceList() {
     // 7. Update pagination controls based on the filtered count
     renderPagination(sortedInvoices, 'invoicePaginationControls', changeInvoicePage, invoicesPerPage, currentInvoicePage);
 }
-    
-function deleteInvoice(id) {
-    if (!confirm('Are you sure you want to delete this invoice? This WILL revert stock changes and cannot be undone.')) return;
-    
-    const invoiceIndex = appData.invoices.findIndex(inv => inv.id === id);
-    if (invoiceIndex > -1) {
-        const invoiceToDelete = appData.invoices[invoiceIndex];
 
-        invoiceToDelete.items.forEach(invItem => {
-            if (invItem.isMisc) {
-                updateMiscItemStock(invItem.name, -invItem.qty);
-            } else {
-                const itemInDb = appData.items.find(i => i.id === invItem.itemId);
-                if (itemInDb) itemInDb.stock -= invItem.qty;
-            }
-        });
-
-        if (invoiceToDelete.challanIds) {
-            invoiceToDelete.challanIds.forEach(challanId => {
-                const challan = appData.challans.find(c => c.id === challanId);
-                if (challan) challan.status = 'pending';
-            });
-        }
-
-        appData.invoices.splice(invoiceIndex, 1);
-        saveData();
-        renderAll();
-        alert('Invoice deleted and stock reverted.');
-    }
-}
 
 //----EDIT/UPDATE INVOICE----
 // This is the only version of editInvoice that should be in your file.
@@ -4174,13 +4260,18 @@ function saveRequisition() {
         }
 
         // 3. Safe Duplicate Check (Prevents crash if appData is loading)
-        if (appData && appData.requisitions) {
+       // 3. Strict Duplicate Check (Financial Year Based for R- and RD-)
+       if (appData && appData.requisitions) {
+            const currentFY = getFinancialYear(reqDate); // যেই তারিখ দেওয়া হয়েছে তার FY বের করা
+            
             const isDuplicate = appData.requisitions.some(req => 
-                req && req.slipNo && String(req.slipNo).toLowerCase() === reqSlipNoRaw.toLowerCase()
+                req && req.slipNo && req.date &&
+                String(req.slipNo).toLowerCase() === reqSlipNoRaw.toLowerCase() &&
+                getFinancialYear(req.date) === currentFY
             );
 
             if (isDuplicate) {
-                alert(`⚠️ Error: Requisition Slip Number "${reqSlipNoRaw}" already exists!`);
+                alert(`⚠️ Error: Requisition Slip Number "${reqSlipNoRaw}" already exists in Financial Year ${currentFY}!\n\nএকই আর্থিক বছরে (Financial Year) একই স্লিপ নম্বর (R- হোক বা RD-) দ্বিতীয়বার ব্যবহার করা যাবে না।`);
                 return; 
             }
         } else {
@@ -4202,17 +4293,18 @@ function saveRequisition() {
         appData.requisitions.push(newRequisition);
 
         // 5. Stock Update (Safe Mode)
-        newRequisition.items.forEach(reqItem => {
+      // 5. Stock Update (Safe Mode)
+      newRequisition.items.forEach(reqItem => {
             if (reqItem.isMisc) {
-                // Ensure name exists before updating
                 if(reqItem.name) {
                     updateMiscItemStock(reqItem.name, -reqItem.qty);
                 }
             } else {
-                // Find item safely
-                const itemInDb = appData.items.find(i => i.id === reqItem.itemId);
+                // FIX: Match IDs by casting both to Strings
+                const itemInDb = appData.items.find(i => String(i.id) === String(reqItem.itemId));
                 if (itemInDb) {
-                    itemInDb.stock -= reqItem.qty;
+                    // FIX: Force math subtraction
+                    itemInDb.stock = Number(itemInDb.stock) - Number(reqItem.qty);
                 } else {
                     console.warn(`Stock update skipped: Item ID ${reqItem.itemId} not found in database.`);
                 }
@@ -4258,15 +4350,15 @@ function clearRequisitionForm() {
 }
     // --- LEGACY REQUISITION (SINGLE ITEM) ---
     function initializeLegacySingleItemEntry() {
-        const itemDropdown = document.getElementById('legacySingleItemSelect');
-        const sortedItems = [...appData.items].sort((a,b) => a.name.localeCompare(b.name));
-        populateDropdown(itemDropdown, [{ id: '', name: '-- প্রথমে একটি আইটেম নির্বাচন করুন --' }, ...sortedItems], true, 'name', 'id');
-        
-        const deptDropdown = document.getElementById('legacySingleReqDepartment');
-        populateDropdown(deptDropdown, appData.departments, true);
-        
-        clearLegacySingleItemForm();
-    }
+    const itemDropdown = document.getElementById('legacySingleItemSelect');
+    const sortedItems = [...appData.items].sort(sortStoreItemsByCode);
+    populateDropdown(itemDropdown, [{ id: '', name: '-- প্রথমে একটি আইটেম নির্বাচন করুন --' }, ...sortedItems], true, 'name', 'id');
+    
+    const deptDropdown = document.getElementById('legacySingleReqDepartment');
+    populateDropdown(deptDropdown, appData.departments, true);
+    
+    clearLegacySingleItemForm();
+}
     
     function clearLegacySingleItemForm() {
         tempSingleItemRequisitions = [];
@@ -4546,44 +4638,57 @@ function changeRequisitionPage(page) {
 }
 
 
-// Populates the new filter dropdowns for REQUISITIONS
 function populateRequisitionFilters() {
     const deptSelect = document.getElementById('requisitionFilterDept');
     const storeItemSelect = document.getElementById('requisitionFilterStoreItem');
     const miscItemSelect = document.getElementById('requisitionFilterMiscItem');
 
-    // Populate departments
     if (deptSelect) {
         const sortedDepts = [...appData.departments].sort((a, b) => a.name.localeCompare(b.name));
-        deptSelect.innerHTML = '<option value="">All Departments</option>'; // Default option
+        deptSelect.innerHTML = '<option value="">All Departments</option>'; 
         sortedDepts.forEach(dept => {
             deptSelect.innerHTML += `<option value="${dept.name}">${dept.name}</option>`;
         });
     }
 
-    // Populate store items
     if (storeItemSelect) {
-        const sortedItems = [...appData.items].sort((a, b) => a.name.localeCompare(b.name));
-        storeItemSelect.innerHTML = '<option value="">All Store Items</option>'; // Default option
+        const sortedItems = [...appData.items].sort(sortStoreItemsByCode);
+        storeItemSelect.innerHTML = '<option value="">All Store Items</option>'; 
         sortedItems.forEach(item => {
             storeItemSelect.innerHTML += `<option value="${item.id}">${item.name}</option>`;
         });
     }
     
-    // Populate miscellaneous items by finding all unique names used in requisitions
     if (miscItemSelect) {
         const miscItemNames = new Set();
         appData.requisitions.forEach(req => {
-            req.items.forEach(item => {
-                if (item.isMisc) {
-                    miscItemNames.add(item.name);
-                }
-            });
+            req.items.forEach(item => { if (item.isMisc) miscItemNames.add(item.name); });
         });
         const sortedMiscItems = Array.from(miscItemNames).sort();
         miscItemSelect.innerHTML = '<option value="">All Misc. Items</option>';
         sortedMiscItems.forEach(name => {
             miscItemSelect.innerHTML += `<option value="${name}">${name}</option>`;
+        });
+    }
+}
+
+function populateInvoiceFilters() {
+    const vendorSelect = document.getElementById('invoiceFilterVendor');
+    const storeItemSelect = document.getElementById('invoiceFilterStoreItem');
+
+    if (vendorSelect) {
+        const sortedVendors = [...appData.vendors].sort((a, b) => a.name.localeCompare(b.name));
+        vendorSelect.innerHTML = '<option value="">All Vendors</option>'; 
+        sortedVendors.forEach(vendor => {
+            vendorSelect.innerHTML += `<option value="${vendor.name}">${vendor.name}</option>`;
+        });
+    }
+
+    if (storeItemSelect) {
+        const sortedItems = [...appData.items].sort(sortStoreItemsByCode);
+        storeItemSelect.innerHTML = '<option value="">All Store Items</option>'; 
+        sortedItems.forEach(item => {
+            storeItemSelect.innerHTML += `<option value="${item.id}">${item.name}</option>`;
         });
     }
 }
@@ -5533,7 +5638,7 @@ function generateCurrentStockValueReport(format) {
     let grandTotalValue = 0;
 
     // 1. Sort items alphabetically
-    const sortedItems = [...appData.items].sort((a, b) => a.name.localeCompare(b.name));
+    const sortedItems = [...appData.items].sort(sortStoreItemsByCode);
 
     sortedItems.forEach(item => {
         // 2. Get the most recent purchase price (Incl. GST) using your existing helper function
@@ -5592,7 +5697,7 @@ function viewCurrentStockValueReport() {
     const formattedDate = `${String(today.getDate()).padStart(2, '0')}/${String(today.getMonth() + 1).padStart(2, '0')}/${today.getFullYear()}`;
 
     // 2. Sort items alphabetically
-    const sortedItems = [...appData.items].sort((a, b) => a.name.localeCompare(b.name));
+    const sortedItems = [...appData.items].sort(sortStoreItemsByCode);
 
     if (sortedItems.length === 0) {
         tableBody.innerHTML = '<tr><td colspan="6" style="text-align:center;">No store items found.</td></tr>';
@@ -5715,7 +5820,35 @@ function viewCurrentStockValueReport() {
             ["Date", "Item Name", "Qty", "Value Consumed", "Req. Date", "Req. No."], data, totalRow, format);
     }
     
-   // NEW FUNCTION: 1. Builds the ledger data and shows it in the modal
+
+    function renderStoreItems(itemsToRender = appData.items) {
+    const listBody = document.getElementById('storeItemListBody');
+    if (!listBody) return;
+    
+    // 🟢 আইটেমগুলোকে Item Code অনুযায়ী সাজানো হচ্ছে
+    const sortedItems = [...itemsToRender].sort(sortStoreItemsByCode);
+    
+    listBody.innerHTML = '';
+    sortedItems.forEach(item => {
+        const row = `
+            <tr>
+                <td>${item.code}</td>
+                <td>${item.name}</td>
+                <td>${item.stockPage}</td>
+                <td>${item.purchPage}</td>
+                <td><strong>${item.stock}</strong></td>
+                <td>${item.unit}</td>
+                <td>${item.reorderLevel || 0}</td>
+                <td class="action-buttons">
+                    <button class="btn-edit" onclick="editStoreItem(${item.id})">Edit</button>
+                    <button class="btn-delete" onclick="deleteStoreItem(${item.id})">Delete</button>
+                </td>
+            </tr>
+        `;
+        listBody.innerHTML += row;
+    });
+}
+   // --- NEW FUNCTION: 1. Builds the ledger data and shows it in the modal
 // REPLACE THIS ENTIRE FUNCTION
 function previewItemLedgerReport() {
     const itemId = parseInt(document.getElementById('ledgerItemSelect').value);
@@ -5732,6 +5865,14 @@ function previewItemLedgerReport() {
         return;
     }
 
+    // --- Helper Function: Get Challan Date instead of Invoice Date ---
+    const getEffectiveDate = (tx) => {
+        if (tx.vendor && tx.challans && tx.challans.length > 0 && tx.challans[0].date) {
+            return tx.challans[0].date; // সর্বদা Challan Date ব্যবহার করবে
+        }
+        return tx.date;
+    };
+
     // --- 1. Calculate Opening Stock ---
     let openingStock = item.stock;
     const today = new Date().toISOString().split('T')[0];
@@ -5741,95 +5882,91 @@ function previewItemLedgerReport() {
     const txs = [...appData.invoices, ...activeChallans, ...appData.requisitions];
 
     // Reverse calculation for Opening Stock
-    txs.filter(tx => new Date(tx.date) >= new Date(startDate) && new Date(tx.date) <= new Date(today))
-       .forEach(tx => {
-            tx.items.forEach(txItem => {
-                if (txItem.itemId === itemId && !txItem.isMisc) {
-                    if (tx.vendor) openingStock -= txItem.qty; 
-                    if (tx.department) openingStock += txItem.qty; 
-                }
-            });
-       });
+    txs.filter(tx => {
+        const eDate = new Date(getEffectiveDate(tx));
+        return eDate >= new Date(startDate) && eDate <= new Date(today);
+    }).forEach(tx => {
+        tx.items.forEach(txItem => {
+            if (txItem.itemId === itemId && !txItem.isMisc) {
+                if (tx.vendor) openingStock -= txItem.qty; 
+                if (tx.department) openingStock += txItem.qty; 
+            }
+        });
+    });
 
     // --- 2. Collect Transactions ---
     let transactions = [];
-    txs.filter(tx => new Date(tx.date) >= new Date(startDate) && new Date(tx.date) <= new Date(endDate))
-       .forEach(tx => {
-            tx.items.forEach(txItem => {
-                if (txItem.itemId === itemId && !txItem.isMisc) {
-                    // Purchase Side
-                    if (tx.vendor) {
-                        let typeLabel = '';
-                        let subText = '';
-                        let refNo = '';
+    txs.filter(tx => {
+        const eDate = new Date(getEffectiveDate(tx));
+        return eDate >= new Date(startDate) && eDate <= new Date(endDate);
+    }).forEach(tx => {
+        tx.items.forEach(txItem => {
+            if (txItem.itemId === itemId && !txItem.isMisc) {
+                const eDate = getEffectiveDate(tx);
+                
+                // Purchase Side
+                if (tx.vendor) {
+                    let typeLabel = '';
+                    let subText = '';
+                    let refNo = '';
 
-                        if (tx.status) { 
-                            // It is a Challan
-                            typeLabel = 'CHALLAN';
-                            refNo = tx.number;
-                            subText = '<span style="color: #e67e22; font-size: 11px;">(Pending Invoice)</span>';
-                        } else {
-                            // It is an Invoice
-                            typeLabel = 'PURCHASE';
-                            refNo = tx.number;
-                            // Get Associated Challan Numbers
-                            if (tx.challans && tx.challans.length > 0) {
-                                const chNumbers = tx.challans.map(c => c.number).join(', ');
-                                subText = `<span style="color: #555; font-size: 11px;">(Ref Ch: ${chNumbers})</span>`;
-                            }
-                        }
+                    if (tx.vendor === "AUDIT_ADJUSTMENT") {
+                        typeLabel = 'AUDIT COUNT';
+                        refNo = tx.number; // এটি অটোমেটিক "2025-2026 Audit Counted Stock" দেখাবে
+                        subText = '<span style="color: #2980b9; font-weight: bold;">NEW YEAR STOCK</span>';
+                    }
 
-                        transactions.push({ 
-                            date: tx.date, 
-                            type: typeLabel, 
-                            refNo: refNo, 
-                            subText: subText, // New Property for extra info
-                            details: `${tx.vendor}`, 
-                            qtyIn: txItem.qty, 
-                            qtyOut: 0 
-                        });
-                    }
-                    // Issue Side
-                    if (tx.department) {
-                        transactions.push({ 
-                            date: tx.date, 
-                            type: 'ISSUE', 
-                            refNo: `${tx.slipNo}`, 
-                            subText: '',
-                            details: `${tx.department}`, 
-                            qtyIn: 0, 
-                            qtyOut: txItem.qty 
-                        });
-                    }
+                    transactions.push({ 
+                        date: eDate, 
+                        type: typeLabel, 
+                        refNo: refNo, 
+                        subText: subText, 
+                        details: `${tx.vendor}`, 
+                        qtyIn: txItem.qty, 
+                        qtyOut: 0 
+                    });
                 }
-            });
-       });
+                // Issue Side
+                if (tx.department) {
+                    let typeLabel = 'ISSUE';
+                    let subText = '';
+                    
+                    if (tx.department === "FY Audit Shortage (Write-off)") {
+                        typeLabel = 'AUDIT (SHORTAGE)';
+                        subText = '<span style="color: #c0392b; font-weight: bold;">STOCK AFTER AUDIT</span>';
+                    }
 
-    // --- 3. Sort ---
-   // --- 3. Sort (Updated Logic) ---
-   transactions.sort((a, b) => {
-        // ধাপ ১: তারিখ তুলনা (পুরানো তারিখ উপরে, নতুন তারিখ নিচে)
+                    transactions.push({ 
+                        date: eDate, 
+                        type: typeLabel, 
+                        refNo: `${tx.slipNo}`, 
+                        subText: subText,
+                        details: `${tx.department}`, 
+                        qtyIn: 0, 
+                        qtyOut: txItem.qty 
+                    });
+                }
+            }
+        });
+    });
+
+    // --- 3. Sort (Updated Logic) ---
+    transactions.sort((a, b) => {
         const dateA = new Date(a.date);
         const dateB = new Date(b.date);
         
-        // যদি তারিখ আলাদা হয়, তবে তারিখ অনুযায়ী সাজাবে
         if (dateA - dateB !== 0) {
             return dateA - dateB; 
         }
 
-        // ধাপ ২: যদি তারিখ একই হয় (যেমন ১০ তারিখ), তবে Purchase/Challan আগে থাকবে
-        const isInputA = (a.type === 'PURCHASE' || a.type === 'CHALLAN');
-        const isInputB = (b.type === 'PURCHASE' || b.type === 'CHALLAN');
+        const isInputA = (a.type === 'PURCHASE' || a.type === 'CHALLAN' || a.type === 'AUDIT (SURPLUS)');
+        const isInputB = (b.type === 'PURCHASE' || b.type === 'CHALLAN' || b.type === 'AUDIT (SURPLUS)');
 
-        if (isInputA && !isInputB) return -1; // Purchase উপরে
-        if (!isInputA && isInputB) return 1;  // Issue নিচে
+        if (isInputA && !isInputB) return -1; 
+        if (!isInputA && isInputB) return 1;  
 
-        // ধাপ ৩: যদি তারিখ এবং টাইপ (Issue) একই হয়, তবে স্লিপ নম্বর অনুযায়ী সাজাবে
-        // এখানে ডিপার্টমেন্ট নাম দেখা হবে না, শুধু স্লিপের সংখ্যা দেখা হবে
         const numA = parseInt(String(a.refNo || '').replace(/[^0-9]/g, ''), 10) || 0;
         const numB = parseInt(String(b.refNo || '').replace(/[^0-9]/g, ''), 10) || 0;
-
-        // ছোট নম্বর (যেমন R-98) উপরে, বড় নম্বর (যেমন R-100) নিচে
         return numA - numB; 
     });
     
@@ -5862,9 +5999,8 @@ function previewItemLedgerReport() {
 
     transactions.forEach(t => {
         balance = balance + t.qtyIn - t.qtyOut;
-        const rowClass = (t.type === 'PURCHASE' || t.type === 'CHALLAN') ? 'ledger-row-purchase' : 'ledger-row-issue';
+        const rowClass = (t.type === 'PURCHASE' || t.type === 'CHALLAN' || t.type === 'AUDIT (SURPLUS)') ? 'ledger-row-purchase' : 'ledger-row-issue';
         
-        // Combine Ref No and SubText (Challan No / Pending Status)
         const description = `<strong>${t.refNo}</strong> <br> ${t.subText} <br> <span style="font-size:12px; color:#666;">(${t.details})</span>`;
 
         tableBody.innerHTML += `
@@ -5897,6 +6033,13 @@ function exportItemLedgerReport(format) {
     
     if (!item) { alert("Item not found."); return; }
 
+    const getEffectiveDate = (tx) => {
+        if (tx.vendor && tx.challans && tx.challans.length > 0 && tx.challans[0].date) {
+            return tx.challans[0].date; 
+        }
+        return tx.date;
+    };
+
     // --- 1. Opening Stock ---
     let openingStock = item.stock;
     const today = new Date().toISOString().split('T')[0];
@@ -5904,60 +6047,76 @@ function exportItemLedgerReport(format) {
     const activeChallans = appData.challans.filter(c => c.status !== 'invoiced');
     const txs = [...appData.invoices, ...activeChallans, ...appData.requisitions];
     
-    txs.filter(tx => new Date(tx.date) >= new Date(startDate) && new Date(tx.date) <= new Date(today))
-       .forEach(tx => {
-            tx.items.forEach(txItem => {
-                if (txItem.itemId === itemId && !txItem.isMisc) {
-                    if (tx.vendor) openingStock -= txItem.qty; 
-                    if (tx.department) openingStock += txItem.qty;
-                }
-            });
-       });
+    txs.filter(tx => {
+        const eDate = new Date(getEffectiveDate(tx));
+        return eDate >= new Date(startDate) && eDate <= new Date(today);
+    }).forEach(tx => {
+        tx.items.forEach(txItem => {
+            if (txItem.itemId === itemId && !txItem.isMisc) {
+                if (tx.vendor) openingStock -= txItem.qty; 
+                if (tx.department) openingStock += txItem.qty;
+            }
+        });
+    });
 
     // --- 2. Build Data ---
     let transactions = [];
-    txs.filter(tx => new Date(tx.date) >= new Date(startDate) && new Date(tx.date) <= new Date(endDate))
-       .forEach(tx => {
-            tx.items.forEach(txItem => {
-                if (txItem.itemId === itemId && !txItem.isMisc) {
-                    // Purchase Side
-                    if (tx.vendor) {
-                        let typeLabel = '';
-                        let refText = '';
+    txs.filter(tx => {
+        const eDate = new Date(getEffectiveDate(tx));
+        return eDate >= new Date(startDate) && eDate <= new Date(endDate);
+    }).forEach(tx => {
+        tx.items.forEach(txItem => {
+            if (txItem.itemId === itemId && !txItem.isMisc) {
+                const eDate = getEffectiveDate(tx);
+                
+                // Purchase Side
+                if (tx.vendor) {
+                    let typeLabel = '';
+                    let refText = '';
 
-                        if (tx.status) {
-                            // Challan
-                            typeLabel = 'CHALLAN';
-                            refText = `${tx.number}\n(Pending Invoice)`;
-                        } else {
-                            // Invoice
-                            typeLabel = 'PURCHASE';
-                            refText = tx.number;
-                            if (tx.challans && tx.challans.length > 0) {
-                                const chNumbers = tx.challans.map(c => c.number).join(', ');
-                                refText += `\n(Ch: ${chNumbers})`; // Add line break for PDF/Excel
-                            }
-                        }
+                    if (tx.department === "AUDIT_ADJUSTMENT") {
+                        typeLabel = 'AUDIT COUNT';
+                        refNo = tx.slipNo; 
+                        subText = '<span style="color: #2980b9; font-weight: bold;">NEW YEAR STOCK</span>';
+                    }
 
-                        transactions.push({ 
-                            date: tx.date, type: typeLabel, 
-                            ref: refText, party: tx.vendor,
-                            qtyIn: txItem.qty, qtyOut: 0 
-                        });
-                    }
-                    // Issue Side
-                    if (tx.department) {
-                        transactions.push({ 
-                            date: tx.date, type: 'ISSUE', 
-                            ref: tx.slipNo, party: tx.department,
-                            qtyIn: 0, qtyOut: txItem.qty 
-                        });
-                    }
+                    transactions.push({ 
+                        date: eDate, type: typeLabel, 
+                        ref: refText, party: tx.vendor,
+                        qtyIn: txItem.qty, qtyOut: 0 
+                    });
                 }
-            });
-       });
+                // Issue Side
+                if (tx.department) {
+                    let typeLabel = 'ISSUE';
+                    let refText = tx.slipNo;
+                    if (tx.department === "FY Audit Shortage (Write-off)") {
+                        typeLabel = 'AUDIT (SHORTAGE)';
+                        refText = `${tx.slipNo}\nSTOCK AFTER AUDIT`;
+                    }
+                    transactions.push({ 
+                        date: eDate, type: typeLabel, 
+                        ref: refText, party: tx.department,
+                        qtyIn: 0, qtyOut: txItem.qty 
+                    });
+                }
+            }
+        });
+    });
     
-    transactions.sort((a, b) => new Date(a.date) - new Date(b.date));
+    // Sort logic matching UI
+    transactions.sort((a, b) => {
+        const dateA = new Date(a.date);
+        const dateB = new Date(b.date);
+        if (dateA - dateB !== 0) return dateA - dateB; 
+        const isInputA = (a.type === 'PURCHASE' || a.type === 'CHALLAN' || a.type === 'AUDIT (SURPLUS)');
+        const isInputB = (b.type === 'PURCHASE' || b.type === 'CHALLAN' || b.type === 'AUDIT (SURPLUS)');
+        if (isInputA && !isInputB) return -1; 
+        if (!isInputA && isInputB) return 1;  
+        const numA = parseInt(String(a.ref || '').replace(/[^0-9]/g, ''), 10) || 0;
+        const numB = parseInt(String(b.ref || '').replace(/[^0-9]/g, ''), 10) || 0;
+        return numA - numB; 
+    });
 
     // --- 3. Format Export ---
     const headers = ["Date", "Type", "Ref No / Details", "Party / Dept", "Qty In", "Qty Out", "Balance"];
@@ -5989,7 +6148,7 @@ function exportItemLedgerReport(format) {
             body: data,
             startY: 25,
             didParseCell: function (data) {
-                if (data.section === 'body' && (data.row.raw[1] === 'PURCHASE' || data.row.raw[1] === 'CHALLAN')) {
+                if (data.section === 'body' && (data.row.raw[1] === 'PURCHASE' || data.row.raw[1] === 'CHALLAN' || data.row.raw[1] === 'AUDIT (SURPLUS)')) {
                     data.cell.styles.fillColor = [212, 237, 218];
                 }
             }
@@ -8816,28 +8975,31 @@ function updateLastReqInfo() {
     const displayEl = document.getElementById('lastReqInfo');
     if (!displayEl) return;
 
+    // হেডারের ড্রপডাউন থেকে সিলেক্ট করা Financial Year নেওয়া
+    const globalFYEl = document.getElementById('globalFY');
+    let targetFY = globalFYEl ? globalFYEl.value : getFinancialYear(new Date().toISOString().split('T')[0]);
+
     let maxRNum = -1;
     let lastStore = null;
-
     let maxRDNum = -1;
     let lastMisc = null;
 
-    // Loop through all requisitions to find the one with the largest numeric ID after 'R-' or 'RD-'
     appData.requisitions.forEach(req => {
-        if (!req.slipNo) return;
+        if (!req.slipNo || !req.date) return;
+        
+        // শুধু সিলেক্ট করা Financial Year এর ডেটা চেক করবে
+        if (getFinancialYear(req.date) !== targetFY) return;
 
-        // Logic for Store Items (R-series)
-        if (req.slipNo.startsWith('R-')) {
-            const num = parseInt(req.slipNo.replace('R-', ''));
-            if (!isNaN(num) && num >= maxRNum) {
+        const slipUpper = req.slipNo.toUpperCase();
+        if (slipUpper.startsWith('R-')) {
+            const num = parseInt(slipUpper.replace('R-', ''));
+            if (!isNaN(num) && num > maxRNum) {
                 maxRNum = num;
                 lastStore = req;
             }
-        } 
-        // Logic for Miscellaneous Items (RD-series)
-        else if (req.slipNo.startsWith('RD-')) {
-            const num = parseInt(req.slipNo.replace('RD-', ''));
-            if (!isNaN(num) && num >= maxRDNum) {
+        } else if (slipUpper.startsWith('RD-')) {
+            const num = parseInt(slipUpper.replace('RD-', ''));
+            if (!isNaN(num) && num > maxRDNum) {
                 maxRDNum = num;
                 lastMisc = req;
             }
@@ -8845,17 +9007,228 @@ function updateLastReqInfo() {
     });
 
     const fmtInfo = (req) => {
-        if (!req) return "N/A";
-        // Shows the Slip No, Date, and Department for the highest found number
+        if (!req) return "<span style='color:green;'>No entry yet (Start from 1)</span>";
         return `<b>${req.slipNo}</b> (Date: ${formatDateToDDMMYYYY(req.date)}, Dept: ${req.department})`;
     };
 
     displayEl.innerHTML = `
+        <div style="margin-bottom: 8px; font-weight: bold; color: #d35400;">Showing Data For Financial Year: ${targetFY}</div>
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-            <div><small>Latest Store Req:</small><br>${fmtInfo(lastStore)}</div>
-            <div><small>Latest Misc Req:</small><br>${fmtInfo(lastMisc)}</div>
+            <div><small>Latest Store Req (R-):</small><br>${fmtInfo(lastStore)}</div>
+            <div><small>Latest Misc Req (RD-):</small><br>${fmtInfo(lastMisc)}</div>
         </div>
     `;
+}
+
+function populateFinancialYearDropdown() {
+    const fySelect = document.getElementById('globalFY');
+    if (!fySelect) return;
+    fySelect.innerHTML = '';
+    
+    const currentYear = new Date().getFullYear();
+    const currentMonth = new Date().getMonth() + 1; // 1 to 12
+    
+    // ৫ বছরের অপশন তৈরি করা (আগের ২ বছর, বর্তমান বছর, পরের ২ বছর)
+    let startYear = currentYear - 2;
+    for (let i = 0; i < 5; i++) {
+        const year1 = startYear + i;
+        const year2 = year1 + 1;
+        const fyString = `${year1}-${year2}`;
+        
+        const option = document.createElement('option');
+        option.value = fyString;
+        option.textContent = `FY: ${year1} - ${year2}`;
+        fySelect.appendChild(option);
+    }
+    
+    // বর্তমান মাস অনুযায়ী ডিফল্ট Financial Year সিলেক্ট করা (এপ্রিল থেকে শুরু)
+    let activeFY = '';
+    if (currentMonth >= 4) {
+        activeFY = `${currentYear}-${currentYear + 1}`;
+    } else {
+        activeFY = `${currentYear - 1}-${currentYear}`;
+    }
+    fySelect.value = activeFY;
+}
+
+
+// --- FINANCIAL YEAR HELPER FUNCTIONS ---
+function getFinancialYear(dateString) {
+    if (!dateString) return "Unknown";
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return "Unknown";
+    
+    const year = date.getFullYear();
+    const month = date.getMonth() + 1; // 1 to 12
+    if (month >= 4) {
+        return `${year}-${year + 1}`; // April to March
+    } else {
+        return `${year - 1}-${year}`; // Jan to March
+    }
+}
+
+function populateFinancialYearDropdown() {
+    const fySelect = document.getElementById('globalFY');
+    if (!fySelect) return;
+    fySelect.innerHTML = ''; // আগের সব অপশন ক্লিয়ার করে দেওয়া
+    
+    const currentYear = new Date().getFullYear();
+    const currentMonth = new Date().getMonth() + 1; 
+    
+    // ৫ বছরের অপশন তৈরি করা (আগের ২ বছর, বর্তমান বছর, পরের ২ বছর)
+    let startYear = currentYear - 2;
+    for (let i = 0; i < 5; i++) {
+        const year1 = startYear + i;
+        const year2 = year1 + 1;
+        const fyString = `${year1}-${year2}`;
+        
+        const option = document.createElement('option');
+        option.value = fyString;
+        option.textContent = `FY: ${year1} - ${year2}`;
+        fySelect.appendChild(option);
+    }
+    
+    // বর্তমান মাস অনুযায়ী ডিফল্ট Financial Year সিলেক্ট করা (এপ্রিল থেকে শুরু)
+    let activeFY = '';
+    if (currentMonth >= 4) {
+        activeFY = `${currentYear}-${currentYear + 1}`;
+    } else {
+        activeFY = `${currentYear - 1}-${currentYear}`;
+    }
+    fySelect.value = activeFY;
+}
+
+// ==========================================
+// --- GOOGLE SHEET AUDIT FUNCTIONALITY ---
+// ==========================================
+function prepareAuditSheet() {
+    if(!confirm("এটি গুগল শিটে 'Audit Report' নামের ট্যাবটি তৈরি করবে। আপনি কি নিশ্চিত?")) return;
+    
+    // বর্তমান আর্থিক বছর বের করা
+    const fy = document.getElementById('globalFY') ? document.getElementById('globalFY').value : '2025-2026';
+    const countColName = `${fy} Counted Stock`; // ডাইনামিক হেডিং
+
+    appData.auditReport = appData.items.map(item => ({
+        'Store Item': item.name,
+        'Item Code': item.code,
+        'Current Stock': item.stock,
+        [countColName]: '' // ইউজার ইনপুটের জন্য ফাঁকা থাকবে
+    }));
+    
+    saveData(); // গুগলে সেভ হবে
+    alert(`Google Sheet-এ 'Audit Report' ট্যাব তৈরি হয়ে গেছে! দয়া করে গুগল শিট ওপেন করে '${countColName}' কলামটিতে আপনার স্টকের সংখ্যা বসান।`);
+}
+
+// ==========================================
+// --- GOOGLE SHEET AUDIT FUNCTIONALITY ---
+// ==========================================
+function syncAuditFromSheet() {
+    try {
+        // ১. গুগল শিটের ডেটা চেক করা
+        if(!appData.auditReport || appData.auditReport.length === 0) {
+            alert("⚠️ Audit Report Data is empty!\n\nকারণ: আপনি হয়তো গুগল শিটে ডেটা বসানোর পর এই পেজটি রিলোড (F5) করেননি।\nদয়া করে পেজটি একবার রিলোড করে আবার চেষ্টা করুন।");
+            return;
+        }
+
+        let surplusItems = [];
+        let shortageItems = [];
+        let processedCount = 0;
+        let logText = ""; 
+
+        // 🟢 ফাইন্যান্সিয়াল ইয়ার এবং অডিটের তারিখ (৩১ মার্চ) বের করা
+        const fy = document.getElementById('globalFY') ? document.getElementById('globalFY').value : '2025-2026';
+        const endYear = fy.split('-')[1]; // যেমন: 2026
+        const auditDate = `${endYear}-03-31`; // সব সময় ওই বছরের ৩১ মার্চ হবে!
+
+        // ২. প্রতিটি আইটেম চেক ও স্টক পরিবর্তন করা
+        appData.auditReport.forEach(row => {
+            const keys = Object.keys(row);
+            
+            // সঠিক কলাম খোঁজা 
+            const countKey = keys.find(k => k.toLowerCase().includes('count'));
+            const codeKey = keys.find(k => k.toLowerCase().includes('code'));
+            const currentStockKey = keys.find(k => k.toLowerCase().trim() === 'current stock'); // 🟢 শিটে থাকা আগের স্টক
+            
+            if(!countKey || !codeKey || !currentStockKey) return;
+
+            const countedStockRaw = row[countKey];
+            
+            // যদি গুগল শিটে কোনো সংখ্যা বসানো থাকে
+            if(countedStockRaw !== '' && countedStockRaw !== null && countedStockRaw !== undefined) {
+                const countedStock = parseInt(String(countedStockRaw).trim(), 10);
+                const sheetFrozenStock = parseInt(String(row[currentStockKey]).trim(), 10); // 🟢 অডিট শিট তৈরির সময়কার স্টক
+                
+                if(!isNaN(countedStock) && !isNaN(sheetFrozenStock)) {
+                    const rowCode = String(row[codeKey]).trim().toLowerCase();
+                    const item = appData.items.find(i => String(i.code).trim().toLowerCase() === rowCode);
+                    
+                    if(item) {
+                        // 🟢 শিটের পুরনো স্টকের সাথে গোনা স্টকের পার্থক্য (Shortage/Surplus) বের করা হচ্ছে
+                        const diff = countedStock - sheetFrozenStock; 
+                        
+                        if (diff > 0) {
+                            // Surplus (স্টক বেশি পাওয়া গেছে)
+                            surplusItems.push({ itemId: item.id, name: item.name, qty: diff, rate: 0, gst: 0, unit: item.unit, isMisc: false, value: 0 });
+                            item.stock = parseInt(item.stock || 0) + diff; // 🟢 লাইভ স্টকের সাথে শুধু পার্থক্যটা যোগ করা হলো
+                            processedCount++;
+                            logText += `➕ ${item.name}: ${sheetFrozenStock} ➔ ${countedStock} (Added: ${diff})\n`;
+                        } else if (diff < 0) {
+                            // Shortage (স্টক কম পাওয়া গেছে / Deduct হবে)
+                            shortageItems.push({ itemId: item.id, name: item.name, code: item.code, qty: Math.abs(diff), unit: item.unit, isMisc: false });
+                            item.stock = parseInt(item.stock || 0) + diff; // 🟢 লাইভ স্টকের সাথে পার্থক্যটা বিয়োগ করা হলো (diff মাইনাস থাকায় বিয়োগ হবে)
+                            processedCount++;
+                            logText += `➖ ${item.name}: ${sheetFrozenStock} ➔ ${countedStock} (Deducted: ${Math.abs(diff)})\n`;
+                        }
+                    }
+                }
+            }
+        });
+
+        // ৩. কাজ সফল হলে সেভ করা এবং লেজার এন্ট্রি করা
+        if (processedCount > 0) {
+            const auditVendorDept = "AUDIT_ADJUSTMENT"; 
+            if (!appData.vendors.some(v => v.name === auditVendorDept)) appData.vendors.push({ id: getNextId('vendor'), name: auditVendorDept });
+            if (!appData.departments.some(d => d.name === auditVendorDept)) appData.departments.push({ id: getNextId('department'), name: auditVendorDept });
+
+            const refString = `${fy} Audit Counted Stock`;
+            
+            // 🟢 ডেট হিসেবে auditDate (৩১ মার্চ) ব্যবহার করা হচ্ছে (যাতে লেজারে পারফেক্টলি বসে)
+            if(surplusItems.length > 0) {
+                appData.invoices.push({ id: getNextId('invoice'), number: refString, date: auditDate, vendor: auditVendorDept, totalAmount: 0, items: surplusItems, challans: [] });
+            }
+            if(shortageItems.length > 0) {
+                appData.requisitions.push({ id: getNextId('requisition'), slipNo: refString, date: auditDate, department: auditVendorDept, items: shortageItems, type: 'Audit' });
+            }
+
+            // ডাবল এন্ট্রি ঠেকাতে শিট ক্লিয়ার করা
+            appData.auditReport = []; 
+            
+            // গুগল শিটে নতুন স্টক সেভ করা
+            if (typeof saveData === 'function') saveData(); 
+            
+            // সাথে সাথে ডিসপ্লে আপডেট করা 
+            if (typeof renderAll === 'function') renderAll();
+            try { 
+                document.querySelector("button[onclick*=\"'itemList'\"]").click(); 
+            } catch(e) {}
+
+            // সাকসেস মেসেজ ও লগ
+            const resultDiv = document.getElementById('auditResult');
+            if(resultDiv) {
+                resultDiv.style.display = 'block';
+                resultDiv.innerHTML = `<strong style="color:green; font-size:16px;">✅ সফলভাবে ${processedCount} টি আইটেমের স্টক ${formatDateToDDMMYYYY(auditDate)} তারিখে আপডেট হয়েছে!</strong>`;
+            }
+            
+            alert(`✅ SUCCESS! Stock adjusted for ${processedCount} items.\n\nকী কী পরিবর্তন হয়েছে:\n${logText}`);
+            
+        } else {
+            alert("⚠️ কোনো আইটেমের স্টক পরিবর্তন হয়নি। \nহয় আপনি গুগল শিটে কোনো নতুন সংখ্যা বসাননি, অথবা সংখ্যাগুলো সিস্টেমের স্টকের সাথে একদম মিলে গেছে।");
+        }
+
+    } catch (e) {
+        console.error("Audit Sync Error: ", e);
+        alert("❌ একটি টেকনিক্যাল এরর হয়েছে: " + e.message);
+    }
 }
 </script>
 <div id="printContainer" style="display: none;"></div>
